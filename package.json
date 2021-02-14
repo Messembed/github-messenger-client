@@ -21,7 +21,7 @@
     "core-js": "^3.6.5",
     "js-cookie": "^2.2.1",
     "lodash": "^4.17.20",
-    "messembed-sdk": "link:./../messembed-sdk",
+    "messembed-sdk": "https://github.com/Messembed/node-messembed-sdk.git",
     "moment": "^2.29.1",
     "nuxt": "^2.14.6",
     "sass": "^1.32.5"
