@@ -1,0 +1,45 @@
+{
+  "name": "github-messenger-client",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt-ts",
+    "build": "nuxt-ts build",
+    "start": "nuxt-ts start",
+    "generate": "nuxt-ts generate",
+    "lint:js": "eslint --ext .js,.vue --ignore-path .gitignore .",
+    "lint": "yarn lint:js",
+    "update-sdk": "cd ../messembed-sdk && yarn build && cd ../github-messenger-client && yarn add link:./../messembed-sdk"
+  },
+  "dependencies": {
+    "@nuxt/typescript-runtime": "^2.0.0",
+    "@nuxtjs/axios": "^5.12.2",
+    "@nuxtjs/proxy": "^2.1.0",
+    "@primer/css": "^15.2.0",
+    "bootstrap": "^4.6.0",
+    "bootstrap-vue": "^2.21.2",
+    "core-js": "^3.6.5",
+    "js-cookie": "^2.2.1",
+    "lodash": "^4.17.20",
+    "messembed-sdk": "link:./../messembed-sdk",
+    "moment": "^2.29.1",
+    "nuxt": "^2.14.6",
+    "sass": "^1.32.5"
+  },
+  "devDependencies": {
+    "@nuxt/types": "^2.14.6",
+    "@nuxt/typescript-build": "^2.0.3",
+    "@nuxtjs/eslint-config": "^3.1.0",
+    "@nuxtjs/eslint-config-typescript": "^3.0.0",
+    "@nuxtjs/eslint-module": "^2.0.0",
+    "@types/js-cookie": "^2.2.6",
+    "@types/lodash": "^4.14.168",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.10.0",
+    "eslint-config-prettier": "^6.12.0",
+    "eslint-plugin-nuxt": "^1.0.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "prettier": "^2.1.2",
+    "sass-loader": "^10.1.1"
+  }
+}
