@@ -13,23 +13,14 @@
 import Vue from 'vue'
 import { mapGetters } from 'vuex'
 import Sidebar from '~/components/Sidebar.vue'
-// import Chat from '~/components/Chat.vue'
 import { PersonalChat } from '~/../messembed-sdk/dist'
-// import { MessembedSDK } from 'messembed-sdk'
 
 export default Vue.extend({
   components: {
     Sidebar,
-    // Chat,
   },
-  data: () => ({
-    accessToken: undefined as string | undefined,
-    personalChats: null as null | object[],
-    currentUser: null as null | object,
-  }),
   computed: {
     ...mapGetters({
-      currentOpenedChatId: 'chat/chatId',
       chats: 'chat/chats',
     }),
   },

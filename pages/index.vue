@@ -11,7 +11,6 @@
 <script lang="ts">
 import Vue from 'vue'
 import jsCookie from 'js-cookie'
-// import { MessembedSDK } from 'messembed-sdk'
 
 export default Vue.extend({
   data: () => ({

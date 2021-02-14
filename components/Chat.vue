@@ -24,10 +24,11 @@
                 <div class="octocat-image"></div>
               </td>
               <td>
-                <div>
+                <div v-if="messagesLoaded">
                   No messages here yet...<br />
                   Say <b>Hi!</b>
                 </div>
+                <div v-else>Choose who do you would want to DM</div>
               </td>
             </tr>
           </tbody>
@@ -145,7 +146,7 @@ export default Vue.extend({
       }
     },
     async sendMessage() {
-      if (!this.messageInput.content) {
+      if (!this.messageInput.content || !this.chatId) {
         return
       }
 
