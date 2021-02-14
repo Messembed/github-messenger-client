@@ -1,48 +1,55 @@
 <template>
-  <div class="chat-item">
-    <table class="chat-table">
-      <tbody>
-        <tr>
-          <td class="avatar-cell">
-            <div style="width: 48px; height: 48px">
-              <img
-                :src="chat && chat.companion.externalMetadata.avatar"
-                class="avatar"
-              />
-            </div>
-          </td>
+  <nuxt-link
+    class="chat-item_nuxt-link"
+    :to="'/app/' + chat.companion.externalMetadata.username"
+  >
+    <div class="chat-item">
+      <table class="chat-table">
+        <tbody>
+          <tr>
+            <td class="avatar-cell">
+              <div style="width: 48px; height: 48px">
+                <img
+                  :src="chat && chat.companion.externalMetadata.avatar"
+                  class="avatar"
+                />
+              </div>
+            </td>
 
-          <td>
-            <table class="chat-info-table">
-              <tbody>
-                <tr class="name-row">
-                  <td class="name-cell">
-                    {{
-                      chat &&
-                      (chat.companion.externalMetadata.name ||
-                        chat.companion.externalMetadata.username)
-                    }}
-                  </td>
-                </tr>
-                <tr class="messages-row">
-                  <td class="last-msg-content-cell">
-                    <div class="last-msg-content">
-                      {{ chat && chat.lastMessage && chat.lastMessage.content }}
-                    </div>
-                  </td>
-                  <td class="unread-msg-count-cell">
-                    <span v-if="chat && chat.unreadMessagesCount !== 0">
-                      {{ chat && chat.unreadMessagesCount }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+            <td>
+              <table class="chat-info-table">
+                <tbody>
+                  <tr class="name-row">
+                    <td class="name-cell">
+                      {{
+                        chat &&
+                        (chat.companion.externalMetadata.name ||
+                          chat.companion.externalMetadata.username)
+                      }}
+                    </td>
+                  </tr>
+                  <tr class="messages-row">
+                    <td class="last-msg-content-cell">
+                      <div class="last-msg-content">
+                        {{
+                          chat && chat.lastMessage && chat.lastMessage.content
+                        }}
+                      </div>
+                    </td>
+                    <td class="unread-msg-count-cell">
+                      <span v-if="chat && chat.unreadMessagesCount !== 0">
+                        {{ chat && chat.unreadMessagesCount }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </nuxt-link>
 </template>
 
 <script>
@@ -61,7 +68,6 @@ export default Vue.extend({
       const chat = this.$store.getters['chat/chats'].find(
         (chat) => chat._id === this.chatId
       )
-      console.log(chat)
       return chat
     },
   },
@@ -77,6 +83,9 @@ table, caption, tbody, tfoot, thead, tr, th, td
   font-size: 100%
   background: transparent
   border-collapse: collapse
+
+.chat-item_nuxt-link
+  text-decoration: none
 
 .chat-item
   height: 81px

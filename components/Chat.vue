@@ -102,14 +102,12 @@ export default Vue.extend({
       const chat = this.$store.getters['chat/chats'].find(
         (chat: any) => chat._id === this.chatId
       )
-      console.log(chat)
       return chat
     },
   },
 
   watch: {
     async messagesLoaded(newVal: boolean) {
-      console.log('messagesLoaded', newVal)
       if (!newVal) {
         return
       }

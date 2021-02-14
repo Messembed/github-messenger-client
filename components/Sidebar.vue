@@ -17,12 +17,7 @@
       </div>
     </div>
     <div class="chat-list">
-      <chat-item
-        v-for="(chat, i) in chats"
-        :key="i"
-        :chat-id="chat._id"
-        @click.native="openChat(chat._id)"
-      />
+      <chat-item v-for="(chat, i) in chats" :key="i" :chat-id="chat._id" />
     </div>
   </div>
 </template>
@@ -38,21 +33,8 @@ export default Vue.extend({
   },
   computed: {
     ...mapGetters({
-      currentOpenedChatId: 'chat/chatId',
       chats: 'chat/chats',
     }),
-  },
-  mounted() {
-    this.$store.dispatch('chat/fetchChats')
-  },
-  methods: {
-    openChat(chatId: string) {
-      if (this.currentOpenedChatId === chatId) {
-        return
-      }
-      this.$store.dispatch('chat/openChat', chatId)
-      console.log(chatId)
-    },
   },
 })
 </script>

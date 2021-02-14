@@ -115,7 +115,6 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
           }
         })
       }
-      console.log(updates)
     }, 1000)
 
     commit('SET_UPDATING_INTERVAL', updatingInterval)
