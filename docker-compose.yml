@@ -1,7 +1,13 @@
 version: "3"
 services:
   ghms-client:
-    build: .
+    build:
+      build:
+      context: .
+      args:
+        - MESSEMBED_URL=${MESSEMBED_URL}
+        - GITHUB_MESSENGER_BACKEND_URL=${GITHUB_MESSENGER_BACKEND_URL}
+    env_file: .env
     ports:
       - $DOCKER_COMPOSE_GHMS_CLIENT_PORT:80
     restart: unless-stopped
