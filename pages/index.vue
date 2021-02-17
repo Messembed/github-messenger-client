@@ -23,7 +23,8 @@ export default Vue.extend({
   },
   methods: {
     signinViaGitHub() {
-      window.location.href = '/api/oauth/github'
+      window.location.href =
+        process.env.GITHUB_MESSENGER_BACKEND_URL + '/oauth/github'
     },
   },
 })

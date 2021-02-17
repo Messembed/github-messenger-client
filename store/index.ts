@@ -35,7 +35,7 @@ export const actions: ActionTree<RootState, RootState> = {
     }
 
     const messembedSdk = new MessembedSDK({
-      baseUrl: 'http://localhost:3000',
+      baseUrl: process.env.MESSEMBED_URL!,
       accessToken: messembedAccessToken,
     })
 

@@ -42,6 +42,11 @@ export default {
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {},
 
+  env: {
+    MESSEMBED_URL: process.env.MESSEMBED_URL,
+    GITHUB_MESSENGER_BACKEND_URL: process.env.GITHUB_MESSENGER_BACKEND_URL,
+  },
+
   server: {
     port: process.env.PORT,
     host: process.env.HOST,
