@@ -1,6 +1,6 @@
 import { GetterTree, ActionTree, MutationTree } from 'vuex'
 import jsCookie from 'js-cookie'
-import { MessembedSDK, User } from '~/../messembed-sdk/dist'
+import { MessembedSDK, User } from 'messembed-sdk'
 
 export const state = () => ({
   messembedSdk: null as MessembedSDK | null,
