@@ -2,7 +2,6 @@ version: "3"
 services:
   ghms-client:
     build:
-      build:
       context: .
       args:
         - MESSEMBED_URL=${MESSEMBED_URL}
