@@ -68,6 +68,7 @@
               autocomplete="off"
               spellcheck="true"
               placeholder="Write a message..."
+              @keyup.enter="sendMessage"
             />
           </div>
           <div class="col-auto">
