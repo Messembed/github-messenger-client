@@ -5,6 +5,7 @@
         <div class="row">
           <div class="col">
             <input
+              v-model="searchInput"
               class="search-input form-control input-dark"
               autocapitalize="on"
               type="text"
@@ -17,7 +18,16 @@
       </div>
     </div>
     <div class="chat-list">
-      <chat-item v-for="(chat, i) in chats" :key="i" :chat-id="chat._id" />
+      <div v-if="searchMode">
+        <chat-item
+          v-for="(user, i) in searchResultingUsers"
+          :key="i"
+          :user="user"
+        />
+      </div>
+      <div v-else>
+        <chat-item v-for="(chat, i) in chats" :key="i" :chat-id="chat._id" />
+      </div>
     </div>
   </div>
 </template>
@@ -25,16 +35,45 @@
 <script lang="ts">
 import Vue from 'vue'
 import { mapGetters } from 'vuex'
+import _ from 'lodash'
 import ChatItem from '~/components/ChatItem.vue'
 
 export default Vue.extend({
   components: {
     ChatItem,
   },
+  data: () => ({
+    searchInput: '',
+    debouncedSearch: () => null as any,
+  }),
   computed: {
     ...mapGetters({
       chats: 'chat/chats',
+      searchMode: 'search/searchMode',
+      searchResultingUsers: 'search/users',
     }),
+  },
+  watch: {
+    searchInput() {
+      if (this.searchInput) {
+        this.debouncedSearch()
+      } else {
+        this.$store.dispatch('search/turnOffSearchMode')
+      }
+    },
+  },
+  created() {
+    this.debouncedSearch = _.debounce(() => {
+      // if the search mode is still turned on
+      if (this.searchInput) {
+        this.search()
+      }
+    }, 500)
+  },
+  methods: {
+    search() {
+      this.$store.dispatch('search/searchUsers', this.searchInput)
+    },
   },
 })
 </script>

@@ -27,7 +27,6 @@ export const actions: ActionTree<RootState, RootState> = {
       return
     }
 
-    // const backendAccessToken = jsCookie.get('backendAccessToken')
     const messembedAccessToken = jsCookie.get('messembedAccessToken')
 
     if (!messembedAccessToken) {

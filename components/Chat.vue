@@ -6,9 +6,13 @@
           <tr>
             <td class="companion-name-cell">
               {{
-                chat &&
-                (chat.companion.externalMetadata.name ||
-                  chat.companion.externalMetadata.username)
+                isDryChat
+                  ? (dryChatCompanion &&
+                      dryChatCompanion.externalMetadata.name) ||
+                    dryChatCompanion.externalMetadata.username
+                  : chat &&
+                    (chat.companion.externalMetadata.name ||
+                      chat.companion.externalMetadata.username)
               }}
             </td>
           </tr>
@@ -98,8 +102,13 @@ export default Vue.extend({
       messages: 'chat/messages',
       unreadMessages: 'chat/unreadMessages',
       messagesLoaded: 'chat/messagesLoaded',
+      isDryChat: 'chat/isDryChat',
+      dryChatCompanion: 'chat/dryChatCompanion',
     }),
     chat() {
+      if (this.isDryChat) {
+        return null
+      }
       const chat = this.$store.getters['chat/chats'].find(
         (chat: any) => chat._id === this.chatId
       )
@@ -146,7 +155,7 @@ export default Vue.extend({
       }
     },
     async sendMessage() {
-      if (!this.messageInput.content || !this.chatId) {
+      if (!this.messageInput.content || (!this.chatId && !this.isDryChat)) {
         return
       }
 

@@ -25,7 +25,16 @@ export default Vue.extend({
     }),
   },
   watch: {
-    $route() {
+    async $route() {
+      await this.openChat()
+    },
+  },
+  async mounted() {
+    await this.$store.dispatch('chat/fetchChats')
+    await this.openChat()
+  },
+  methods: {
+    async openChat() {
       if (this.$route.params.username) {
         const foundChat = this.chats.find(
           (chat: PersonalChat) =>
@@ -34,30 +43,20 @@ export default Vue.extend({
         )
 
         if (!foundChat) {
-          // TODO show NOT FOUND error
+          const messembedUser = await this.$store.dispatch(
+            'search/ensureGithubUserIntegrity',
+            {
+              githubUsername: this.$route.params.username,
+            }
+          )
+
+          await this.$store.dispatch('chat/openDryChat', messembedUser._id)
           return
         }
 
         this.$store.dispatch('chat/openChat', foundChat._id)
       }
     },
-  },
-  async mounted() {
-    await this.$store.dispatch('chat/fetchChats')
-    if (this.$route.params.username) {
-      const foundChat = this.chats.find(
-        (chat: PersonalChat) =>
-          chat.companion.externalMetadata.username ===
-          this.$route.params.username
-      )
-
-      if (!foundChat) {
-        // TODO show NOT FOUND error
-        return
-      }
-
-      this.$store.dispatch('chat/openChat', foundChat._id)
-    }
   },
 })
 </script>

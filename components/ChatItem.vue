@@ -1,18 +1,12 @@
 <template>
-  <nuxt-link
-    class="chat-item_nuxt-link"
-    :to="'/app/' + chat.companion.externalMetadata.username"
-  >
+  <nuxt-link class="chat-item_nuxt-link" :to="'/app/' + companionUsername">
     <div class="chat-item">
       <table class="chat-table">
         <tbody>
           <tr>
             <td class="avatar-cell">
               <div style="width: 48px; height: 48px">
-                <img
-                  :src="chat && chat.companion.externalMetadata.avatar"
-                  class="avatar"
-                />
+                <img :src="avatar" class="avatar" />
               </div>
             </td>
 
@@ -21,19 +15,13 @@
                 <tbody>
                   <tr class="name-row">
                     <td class="name-cell">
-                      {{
-                        chat &&
-                        (chat.companion.externalMetadata.name ||
-                          chat.companion.externalMetadata.username)
-                      }}
+                      {{ companionName }}
                     </td>
                   </tr>
                   <tr class="messages-row">
                     <td class="last-msg-content-cell">
                       <div class="last-msg-content">
-                        {{
-                          chat && chat.lastMessage && chat.lastMessage.content
-                        }}
+                        {{ lastMessage }}
                       </div>
                     </td>
                     <td class="unread-msg-count-cell">
@@ -59,16 +47,60 @@ export default Vue.extend({
   props: {
     chatId: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
+    },
+    user: {
+      type: Object,
+      required: false,
+      default: null,
     },
   },
-
   computed: {
     chat() {
+      if (!this.chatId) {
+        return null
+      }
       const chat = this.$store.getters['chat/chats'].find(
         (chat) => chat._id === this.chatId
       )
       return chat
+    },
+    companionUsername() {
+      if (this.user) {
+        return this.user.login
+      } else if (this.chat) {
+        return this.chat.companion.externalMetadata.username
+      }
+      return null
+    },
+    avatar() {
+      if (this.user) {
+        return this.user.avatar_url
+      } else if (this.chat) {
+        return this.chat.companion.externalMetadata.avatar
+      }
+
+      return null
+    },
+    lastMessage() {
+      if (this.user) {
+        return ''
+      } else if (this.chat) {
+        return this.chat.lastMessage && this.chat.lastMessage.content
+      }
+      return null
+    },
+    companionName() {
+      if (this.user) {
+        return this.user.name || this.user.login
+      } else if (this.chat) {
+        return (
+          this.chat.companion.externalMetadata.name ||
+          this.chat.companion.externalMetadata.username
+        )
+      }
+      return null
     },
   },
 })

@@ -1,10 +1,18 @@
 import { GetterTree, ActionTree, MutationTree } from 'vuex'
-import { Message, MessembedSDK, PersonalChat, Update } from 'messembed-sdk'
+import {
+  Message,
+  MessembedSDK,
+  PersonalChat,
+  Update,
+  User,
+} from 'messembed-sdk'
 import _ from 'lodash'
 import { RootState } from '~/store'
 
 export const state = () => ({
   chatOpened: false,
+  isDryChat: false,
+  dryChatCompanion: null as User | null,
   chatId: null as string | null,
   messages: [] as Message[],
   unreadMessages: [] as Message[],
@@ -18,6 +26,8 @@ export type AnotherModuleState = ReturnType<typeof state>
 
 export const getters: GetterTree<AnotherModuleState, RootState> = {
   chats: (state) => state.chats,
+  isDryChat: (state) => state.isDryChat,
+  dryChatCompanion: (state) => state.dryChatCompanion,
   chatId: (state) => state.chatId,
   messages: (state) => state.messages,
   unreadMessages: (state) => state.unreadMessages,
@@ -47,12 +57,23 @@ export const mutations: MutationTree<AnotherModuleState> = {
       }
     }
   },
+  ADD_NEW_CHAT: (state, chat) => {
+    const existingChat = state.chats.find((_chat) => _chat._id === chat._id)
+    if (existingChat) {
+      return
+    }
+
+    state.chats.unshift(chat)
+  },
   MERGE_UNREAD_MESSAGES: (state) => {
     state.messages.push(...state.unreadMessages)
     state.unreadMessages = []
   },
   MARK_MESSAGES_LOADED: (state, value: boolean) =>
     (state.messagesLoaded = value),
+  SET_IS_DRY_CHAT: (state, isDryChat: boolean) => (state.isDryChat = isDryChat),
+  SET_DRY_CHAT_COMPANION: (state, dryChatCompanion: User) =>
+    (state.dryChatCompanion = dryChatCompanion),
 }
 
 export const actions: ActionTree<AnotherModuleState, RootState> = {
@@ -67,6 +88,8 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
   },
   async openChat({ commit }, chatId: string) {
     commit('MARK_MESSAGES_LOADED', false)
+    commit('SET_IS_DRY_CHAT', false)
+    commit('SET_DRY_CHAT_COMPANION', null)
 
     this.dispatch('initMessembedSdk')
 
@@ -78,9 +101,20 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
     commit('SET_MESSAGES', messasgesResult.messages)
     commit('MARK_MESSAGES_LOADED', true)
   },
-  async sendMessage(_ctx, messageContent: string): Promise<void> {
+  async sendMessage({ commit }, messageContent: string): Promise<void> {
     this.dispatch('initMessembedSdk')
     const messembedSdk = this.getters.messembedSdk as MessembedSDK
+
+    if (this.getters['chat/isDryChat']) {
+      const dryChatCompanion = this.getters['chat/dryChatCompanion']
+      const chat = await messembedSdk.createChat(dryChatCompanion._id)
+
+      commit('ADD_NEW_CHAT', chat)
+      commit('SET_CHAT_ID', chat._id)
+      commit('SET_IS_DRY_CHAT', false)
+      commit('SET_DRY_CHAT_COMPANION', null)
+    }
+
     const chatId = this.getters['chat/chatId'] as string
 
     await messembedSdk.createMessage({
@@ -121,5 +155,18 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
   },
   mergeUnreadMessages({ commit }) {
     commit('MERGE_UNREAD_MESSAGES')
+  },
+  async openDryChat({ commit }, messembedUserId: string) {
+    commit('MARK_MESSAGES_LOADED', false)
+    this.dispatch('initMessembedSdk')
+    const messembedSdk = this.getters.messembedSdk as MessembedSDK
+
+    const companion = await messembedSdk.getUser(messembedUserId)
+
+    commit('SET_MESSAGES', [])
+    commit('SET_IS_DRY_CHAT', true)
+    commit('SET_DRY_CHAT_COMPANION', companion)
+    commit('MARK_CHAT_AS_OPENED')
+    commit('MARK_MESSAGES_LOADED', true)
   },
 }
