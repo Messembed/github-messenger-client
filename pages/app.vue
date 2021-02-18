@@ -24,6 +24,9 @@ export default Vue.extend({
       chats: 'chat/chats',
     }),
   },
+  data: () => ({
+    title: 'GitHub Messenger',
+  }),
   watch: {
     async $route() {
       await this.openChat()
@@ -51,12 +54,23 @@ export default Vue.extend({
           )
 
           await this.$store.dispatch('chat/openDryChat', messembedUser._id)
+          this.title =
+            (messembedUser.externalMetadata.name ||
+              messembedUser.externalMetadata.username ||
+              '') + ' - GitHub Messenger'
           return
         }
 
         this.$store.dispatch('chat/openChat', foundChat._id)
+        this.title =
+          (foundChat.companion.externalMetadata.name ||
+            foundChat.companion.externalMetadata.username ||
+            '') + ' - GitHub Messenger'
       }
     },
+  },
+  head() {
+    return { title: this.title }
   },
 })
 </script>
