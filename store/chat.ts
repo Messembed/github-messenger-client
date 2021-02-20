@@ -7,7 +7,11 @@ import {
   User,
 } from 'messembed-sdk'
 import _ from 'lodash'
+import io, { Socket } from 'socket.io-client'
+import jsCookie from 'js-cookie'
 import { RootState } from '~/store'
+
+let socket: typeof Socket | null = null
 
 export const state = () => ({
   chatOpened: false,
@@ -54,6 +58,10 @@ export const mutations: MutationTree<AnotherModuleState> = {
 
       if (state.chatId === chat._id) {
         state.unreadMessages.push(update.message as any)
+        chat.unreadMessagesCount = 0
+        // @ts-ignore
+      } else if (!update.message!.fromMe) {
+        chat.unreadMessagesCount++
       }
     }
   },
@@ -117,41 +125,36 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
 
     const chatId = this.getters['chat/chatId'] as string
 
-    await messembedSdk.createMessage({
-      chatId,
+    socket!.emit('send_message', {
       content: messageContent,
+      chatId,
     })
   },
-  ensureUpdatingInterval({ state, commit }) {
+  ensureUpdatingInterval({ commit }) {
     this.dispatch('initMessembedSdk')
-    const messembedSdk = this.getters.messembedSdk as MessembedSDK
 
-    if (state.updatingInterval) {
+    if (socket) {
       return
     }
 
-    if (!state.lastUpdateDate) {
-      const chats: PersonalChat[] = this.getters['chat/chats']
-      const createdAt: Date = _.maxBy(chats, 'lastMessage.createdAt')
-        ?.lastMessage.createdAt
-      commit('SET_LAST_UPDATE_DATE', createdAt)
-    }
+    const messembedAccessToken = jsCookie.get('messembedAccessToken')
+    socket = io('ws://localhost:3000', {
+      query: {
+        token: messembedAccessToken!,
+      },
+    })
 
-    const updatingInterval = setInterval(async () => {
-      const lastUpdateDate = this.getters['chat/lastUpdateDate']
-      const updates = await messembedSdk.getUpdates(lastUpdateDate)
+    socket.on('connect', () => {
+      console.log('Socket connected', socket)
+    })
 
-      if (!_.isEmpty(updates)) {
-        commit('SET_LAST_UPDATE_DATE', _.last(updates)?.createdAt)
-        updates.forEach((update) => {
-          if (update.type === 'new_message') {
-            commit('PUSH_UPDATE_ABOUT_NEW_MESSAGE', update)
-          }
-        })
+    socket.on('new_update', (update: Update) => {
+      if (update.type === 'new_message') {
+        commit('PUSH_UPDATE_ABOUT_NEW_MESSAGE', update)
+      } else if (update.type === 'new_chat') {
+        commit('ADD_NEW_CHAT', update.chat)
       }
-    }, 1000)
-
-    commit('SET_UPDATING_INTERVAL', updatingInterval)
+    })
   },
   mergeUnreadMessages({ commit }) {
     commit('MERGE_UNREAD_MESSAGES')
