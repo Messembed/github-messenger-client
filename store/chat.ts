@@ -185,7 +185,10 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
     }
 
     const messembedAccessToken = jsCookie.get('messembedAccessToken')
-    socket = io(process.env.MESSEMBED_URL!, {
+    const messembedUrl = new URL(process.env.MESSEMBED_URL!)
+
+    socket = io(messembedUrl.origin, {
+      path: messembedUrl.pathname + '/socket.io',
       query: {
         token: messembedAccessToken!,
       },
