@@ -20,6 +20,15 @@ export default Vue.extend({
   mounted() {
     this.backendAccessToken = jsCookie.get('backendAccessToken')
     this.messembedAccessToken = jsCookie.get('messembedAccessToken')
+
+    // if running on production immidiately authenticate the user and redirect to the app
+    if (process.env.NODE_ENV === 'production') {
+      if (!this.backendAccessToken || !this.messembedAccessToken) {
+        this.signinViaGitHub()
+      } else {
+        window.location.href = '/app'
+      }
+    }
   },
   methods: {
     signinViaGitHub() {
