@@ -5,7 +5,7 @@
         {{ message.content }}
       </div>
       <div class="date">
-        {{ formatMessageDate(message.createdAt) }}
+        {{ formatMessageDate(message) }}
       </div>
     </div>
     <div style="clear: both"></div>
@@ -14,6 +14,7 @@
 
 <script lang="ts">
 import moment from 'moment'
+import { Message } from 'messembed-sdk'
 
 export default {
   props: {
@@ -24,7 +25,7 @@ export default {
   },
 
   methods: {
-    formatMessageDate(message: any): string {
+    formatMessageDate(message: Message): string {
       const date = moment(message.createdAt)
       const createdToday = date.isSame(new Date(), 'day')
       if (createdToday) {

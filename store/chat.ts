@@ -27,8 +27,6 @@ export const state = () => ({
   messages: [] as Message[],
   unreadMessages: [] as Message[],
   messagesLoaded: false,
-  updatingInterval: undefined as any,
-  lastUpdateDate: undefined as Date | void,
   chats: [] as PersonalChat[],
   chatsWithAdditionalInfo: {} as {
     [chatId: string]: PersonalChatWithAdditionalInfo
@@ -46,7 +44,6 @@ export const getters: GetterTree<AnotherModuleState, RootState> = {
   messages: (state) => state.messages,
   unreadMessages: (state) => state.unreadMessages,
   messagesLoaded: (state) => state.messagesLoaded,
-  lastUpdateDate: (state) => state.lastUpdateDate,
 }
 
 export const mutations: MutationTree<AnotherModuleState> = {
@@ -67,7 +64,7 @@ export const mutations: MutationTree<AnotherModuleState> = {
     const chat = state.chats.find((chat) => chat._id === update.chatId)
     if (chat) {
       // TODO: fix the sdk
-      chat.lastMessage = update.message as any
+      chat.lastMessage = update.message!
       _.pull(state.chats, chat)
       state.chats.unshift(chat)
 
@@ -78,7 +75,7 @@ export const mutations: MutationTree<AnotherModuleState> = {
           state.chatsWithAdditionalInfo[chat._id].writing = false
         }
         if (state.chatId === chat._id) {
-          state.unreadMessages.push(update.message as any)
+          state.unreadMessages.push(update.message!)
           chat.unreadMessagesCount = 0
 
           // @ts-ignore
@@ -127,7 +124,7 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
       .messembedSdk as MessembedSDK).getPersonalChats()
 
     commit('SET_CHATS', personalChats)
-    this.dispatch('chat/ensureUpdatingInterval')
+    this.dispatch('chat/ensureWebSocketConnection')
   },
   async openChat({ commit }, chatId: string) {
     commit('MARK_MESSAGES_LOADED', false)
@@ -166,7 +163,7 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
       chatId,
     })
   },
-  ensureUpdatingInterval({ state, commit }) {
+  ensureWebSocketConnection({ state, commit }) {
     this.dispatch('initMessembedSdk')
 
     if (socket) {

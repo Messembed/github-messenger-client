@@ -1,10 +1,11 @@
 import { GetterTree, ActionTree, MutationTree } from 'vuex'
 import jsCookie from 'js-cookie'
+import { User } from 'messembed-sdk'
 import { RootState } from '~/store'
 
 export const state = () => ({
   searchMode: false,
-  users: [] as any[],
+  users: [] as User[],
 })
 
 export type AnotherModuleState = ReturnType<typeof state>

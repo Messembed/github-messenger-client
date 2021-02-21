@@ -91,6 +91,7 @@
 import Vue from 'vue'
 import { mapGetters } from 'vuex'
 import _ from 'lodash'
+import { Chat } from 'messembed-sdk'
 import Message from './Message.vue'
 import WritingIndicator from './WritingIndicator.vue'
 
@@ -124,7 +125,7 @@ export default Vue.extend({
         return null
       }
       const chat = this.$store.getters['chat/chats'].find(
-        (chat: any) => chat._id === this.chatId
+        (chat: Chat) => chat._id === this.chatId
       )
       return chat
     },
