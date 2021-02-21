@@ -188,7 +188,10 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
     const messembedUrl = new URL(process.env.MESSEMBED_URL!)
 
     socket = io(messembedUrl.origin, {
-      path: messembedUrl.pathname + '/socket.io',
+      path:
+        messembedUrl.pathname === '/'
+          ? '/socket.io'
+          : messembedUrl.pathname + '/socket.io',
       query: {
         token: messembedAccessToken!,
       },
