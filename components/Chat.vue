@@ -19,7 +19,7 @@
           <tr class="info-row">
             <td class="info-cell">
               <WritingIndicator v-if="companionIsWriting" />
-              <div v-else>last seen recently</div>
+              <div v-else-if="chatId">last seen recently</div>
             </td>
           </tr>
         </tbody>
@@ -66,6 +66,7 @@
         <div class="row">
           <div class="col message-input-col">
             <input
+              ref="messageInputElem"
               v-model="messageInput.content"
               class="message-input form-control input-dark"
               autocapitalize="on"
@@ -142,6 +143,9 @@ export default Vue.extend({
 
       return currentChatWithAdditionalInfo.writing
     },
+    messageInputElem(): HTMLInputElement {
+      return this.$refs.messageInputElem as HTMLInputElement
+    },
   },
 
   watch: {
@@ -157,6 +161,7 @@ export default Vue.extend({
 
       const messagesScrollable = this.$refs.messagesScrollable as HTMLDivElement
       messagesScrollable.scrollTop = messagesScrollable.scrollHeight
+      ;(this.messageInputElem as HTMLInputElement).focus()
     },
 
     async unreadMessages(newVal) {
