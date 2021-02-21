@@ -20,7 +20,8 @@
                   </tr>
                   <tr class="messages-row">
                     <td class="last-msg-content-cell">
-                      <div class="last-msg-content">
+                      <writing-indicator v-if="isWriting" />
+                      <div v-else class="last-msg-content">
                         {{ lastMessage }}
                       </div>
                     </td>
@@ -42,8 +43,13 @@
 
 <script>
 import Vue from 'vue'
+import { mapGetters } from 'vuex'
+import WritingIndicator from './WritingIndicator.vue'
 
 export default Vue.extend({
+  components: {
+    WritingIndicator,
+  },
   props: {
     chatId: {
       type: String,
@@ -57,6 +63,9 @@ export default Vue.extend({
     },
   },
   computed: {
+    ...mapGetters({
+      chatsWithAdditionalInfo: 'chat/chatsWithAdditionalInfo',
+    }),
     chat() {
       if (!this.chatId) {
         return null
@@ -101,6 +110,19 @@ export default Vue.extend({
         )
       }
       return null
+    },
+    isWriting() {
+      if (!this.chatId) {
+        return false
+      }
+      const currentChatWithAdditionalInfo = this.chatsWithAdditionalInfo[
+        this.chatId
+      ]
+      if (!currentChatWithAdditionalInfo) {
+        return false
+      }
+
+      return currentChatWithAdditionalInfo.writing
     },
   },
 })

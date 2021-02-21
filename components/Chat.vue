@@ -3,7 +3,7 @@
     <div class="header">
       <table class="header-table">
         <tbody>
-          <tr>
+          <tr class="name-row">
             <td class="companion-name-cell">
               {{
                 isDryChat
@@ -14,6 +14,12 @@
                     (chat.companion.externalMetadata.name ||
                       chat.companion.externalMetadata.username)
               }}
+            </td>
+          </tr>
+          <tr class="info-row">
+            <td class="info-cell">
+              <WritingIndicator v-if="companionIsWriting" />
+              <div v-else>last seen recently</div>
             </td>
           </tr>
         </tbody>
@@ -84,11 +90,14 @@
 <script lang="ts">
 import Vue from 'vue'
 import { mapGetters } from 'vuex'
+import _ from 'lodash'
 import Message from './Message.vue'
+import WritingIndicator from './WritingIndicator.vue'
 
 export default Vue.extend({
   components: {
     Message,
+    WritingIndicator,
   },
 
   data: () => ({
@@ -96,6 +105,9 @@ export default Vue.extend({
     messageInput: {
       content: '',
     },
+    throttledSendWritingIndicator: (() => undefined) as _.DebouncedFunc<
+      () => void
+    >,
   }),
   computed: {
     ...mapGetters({
@@ -105,6 +117,7 @@ export default Vue.extend({
       messagesLoaded: 'chat/messagesLoaded',
       isDryChat: 'chat/isDryChat',
       dryChatCompanion: 'chat/dryChatCompanion',
+      chatsWithAdditionalInfo: 'chat/chatsWithAdditionalInfo',
     }),
     chat() {
       if (this.isDryChat) {
@@ -115,9 +128,26 @@ export default Vue.extend({
       )
       return chat
     },
+    companionIsWriting(): boolean {
+      if (!this.chatId) {
+        return false
+      }
+      const currentChatWithAdditionalInfo = this.chatsWithAdditionalInfo[
+        this.chatId
+      ]
+      if (!currentChatWithAdditionalInfo) {
+        return false
+      }
+
+      return currentChatWithAdditionalInfo.writing
+    },
   },
 
   watch: {
+    'messageInput.content'() {
+      this.throttledSendWritingIndicator()
+    },
+
     async messagesLoaded(newVal: boolean) {
       if (!newVal) {
         return
@@ -143,6 +173,16 @@ export default Vue.extend({
     },
   },
 
+  created() {
+    this.throttledSendWritingIndicator = _.throttle(() => {
+      console.log('throttledSendWritingIndicator')
+      if (!this.messageInput.content) {
+        return
+      }
+      ;(this as any).sendWritingIndicator()
+    }, 1000)
+  },
+
   methods: {
     scrollHandler() {
       const messagesScrollable = this.$refs.messagesScrollable as HTMLDivElement
@@ -162,9 +202,16 @@ export default Vue.extend({
 
       const messageContent = this.messageInput.content
 
+      // cancel any pending "send writing indicator" function
+      // before sending the actual message
+      this.throttledSendWritingIndicator.cancel()
       await this.$store.dispatch('chat/sendMessage', messageContent)
 
       this.messageInput.content = ''
+    },
+
+    async sendWritingIndicator(): Promise<void> {
+      await this.$store.dispatch('chat/sendWritingIndicator')
     },
   },
 })
@@ -192,11 +239,25 @@ table, caption, tbody, tfoot, thead, tr, th, td
     box-shadow: rgb(33, 38, 45) 0px -1px 0px 0px inset
 
     .header-table
-      height: 100%
+      height: 62px
       width: 100%
-      .companion-name-cell
+      td
         padding-left: 16.5px
+
+      .name-row
+        height: 35px
         color: #c9d1d9
+
+        .companion-name-cell
+          padding-top: 13px
+
+      .info-row
+        height: 27px
+
+        .info-cell
+          padding-bottom: 10px
+          font-size: 15px
+          color: #8b949e
 
 
   .messages-container

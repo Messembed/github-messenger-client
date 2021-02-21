@@ -13,6 +13,12 @@ import { RootState } from '~/store'
 
 let socket: typeof Socket | null = null
 
+interface PersonalChatWithAdditionalInfo {
+  chatId: string
+  writing: boolean
+  clearWritingTimeout?: any
+}
+
 export const state = () => ({
   chatOpened: false,
   isDryChat: false,
@@ -24,12 +30,16 @@ export const state = () => ({
   updatingInterval: undefined as any,
   lastUpdateDate: undefined as Date | void,
   chats: [] as PersonalChat[],
+  chatsWithAdditionalInfo: {} as {
+    [chatId: string]: PersonalChatWithAdditionalInfo
+  },
 })
 
 export type AnotherModuleState = ReturnType<typeof state>
 
 export const getters: GetterTree<AnotherModuleState, RootState> = {
   chats: (state) => state.chats,
+  chatsWithAdditionalInfo: (state) => state.chatsWithAdditionalInfo,
   isDryChat: (state) => state.isDryChat,
   dryChatCompanion: (state) => state.dryChatCompanion,
   chatId: (state) => state.chatId,
@@ -40,14 +50,19 @@ export const getters: GetterTree<AnotherModuleState, RootState> = {
 }
 
 export const mutations: MutationTree<AnotherModuleState> = {
-  SET_CHATS: (state, chats: any[]) => (state.chats = chats),
+  SET_CHATS: (state, chats: PersonalChat[]) => {
+    state.chats = chats
+    state.chatsWithAdditionalInfo = chats.reduce(
+      (acc, chat) => ({
+        ...acc,
+        [chat._id]: { chatId: chat._id, writing: false },
+      }),
+      {}
+    )
+  },
   MARK_CHAT_AS_OPENED: (state) => (state.chatOpened = true),
   SET_CHAT_ID: (state, chatId: string) => (state.chatId = chatId),
   SET_MESSAGES: (state, messages: Message[]) => (state.messages = messages),
-  SET_LAST_UPDATE_DATE: (state, lastUpdateDate: Date) =>
-    (state.lastUpdateDate = lastUpdateDate),
-  SET_UPDATING_INTERVAL: (state, updatingInterval: any) =>
-    (state.updatingInterval = updatingInterval),
   PUSH_UPDATE_ABOUT_NEW_MESSAGE: (state, update: Update) => {
     const chat = state.chats.find((chat) => chat._id === update.chatId)
     if (chat) {
@@ -56,22 +71,34 @@ export const mutations: MutationTree<AnotherModuleState> = {
       _.pull(state.chats, chat)
       state.chats.unshift(chat)
 
-      if (state.chatId === chat._id) {
-        state.unreadMessages.push(update.message as any)
-        chat.unreadMessagesCount = 0
-        // @ts-ignore
-      } else if (!update.message!.fromMe) {
-        chat.unreadMessagesCount++
+      // @ts-ignore
+      if (state.chatId === chat._id || !update.message!.fromMe) {
+        if (state.chatsWithAdditionalInfo[chat._id]) {
+          // drop the writing indicator if new message is received
+          state.chatsWithAdditionalInfo[chat._id].writing = false
+        }
+        if (state.chatId === chat._id) {
+          state.unreadMessages.push(update.message as any)
+          chat.unreadMessagesCount = 0
+
+          // @ts-ignore
+        } else if (!update.message!.fromMe) {
+          chat.unreadMessagesCount++
+        }
       }
     }
   },
-  ADD_NEW_CHAT: (state, chat) => {
+  ADD_NEW_CHAT: (state, chat: PersonalChat) => {
     const existingChat = state.chats.find((_chat) => _chat._id === chat._id)
     if (existingChat) {
       return
     }
 
     state.chats.unshift(chat)
+    state.chatsWithAdditionalInfo[chat._id] = {
+      chatId: chat._id,
+      writing: false,
+    }
   },
   MERGE_UNREAD_MESSAGES: (state) => {
     state.messages.push(...state.unreadMessages)
@@ -82,6 +109,14 @@ export const mutations: MutationTree<AnotherModuleState> = {
   SET_IS_DRY_CHAT: (state, isDryChat: boolean) => (state.isDryChat = isDryChat),
   SET_DRY_CHAT_COMPANION: (state, dryChatCompanion: User) =>
     (state.dryChatCompanion = dryChatCompanion),
+  SET_WRITING: (
+    state,
+    params: { chatId: string; writing: boolean; clearWritingTimeout: any }
+  ) => {
+    state.chatsWithAdditionalInfo[params.chatId].writing = params.writing
+    state.chatsWithAdditionalInfo[params.chatId].clearWritingTimeout =
+      params.clearWritingTimeout
+  },
 }
 
 export const actions: ActionTree<AnotherModuleState, RootState> = {
@@ -100,9 +135,10 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
     commit('SET_DRY_CHAT_COMPANION', null)
 
     this.dispatch('initMessembedSdk')
+    const messembedSdk: MessembedSDK = await (this.getters
+      .messembedSdk as MessembedSDK)
 
-    const messasgesResult = await (this.getters
-      .messembedSdk as MessembedSDK).findMessages({ chatId })
+    const messasgesResult = await messembedSdk.findMessages({ chatId })
 
     commit('SET_CHAT_ID', chatId)
     commit('MARK_CHAT_AS_OPENED')
@@ -130,7 +166,7 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
       chatId,
     })
   },
-  ensureUpdatingInterval({ commit }) {
+  ensureUpdatingInterval({ state, commit }) {
     this.dispatch('initMessembedSdk')
 
     if (socket) {
@@ -155,6 +191,27 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
         commit('ADD_NEW_CHAT', update.chat)
       }
     })
+
+    socket.on('writing', (writing: { chatId: string }) => {
+      if (state.chatsWithAdditionalInfo[writing.chatId].clearWritingTimeout) {
+        clearTimeout(
+          state.chatsWithAdditionalInfo[writing.chatId].clearWritingTimeout
+        )
+      }
+
+      const clearWritingTimeout = setTimeout(() => {
+        commit('SET_WRITING', { chatId: writing.chatId, writing: false })
+      }, 1500)
+
+      commit('SET_WRITING', {
+        chatId: writing.chatId,
+        writing: true,
+        clearWritingTimeout,
+      })
+    })
+  },
+  sendWritingIndicator({ state }) {
+    socket?.emit('send_writing', { chatId: state.chatId })
   },
   mergeUnreadMessages({ commit }) {
     commit('MERGE_UNREAD_MESSAGES')

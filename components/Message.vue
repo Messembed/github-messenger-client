@@ -37,20 +37,26 @@ export default {
 }
 </script>
 
-<style lang="sass" scoped>
-.message-container
-  margin-top: 10px
-  clear: both
-  .message
-    padding: 15px
-    background: #161b22
-    border-radius: 6px
-    color: #c9d1d9
-    max-width: 300px
+<style lang="scss" scoped>
+.message-container {
+  margin-top: 10px;
+  clear: both;
+  .message {
+    padding: 15px;
+    background: #161b22;
+    border-radius: 6px;
+    color: #c9d1d9;
+    max-width: 300px;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
 
-    .date
-      font-size: 15px
-      text-align: right
-      color: #c9d1d9
-      opacity: 0.5
+    .date {
+      font-size: 15px;
+      text-align: right;
+      color: #c9d1d9;
+      opacity: 0.5;
+    }
+  }
+}
 </style>
