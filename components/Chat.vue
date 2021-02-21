@@ -176,7 +176,6 @@ export default Vue.extend({
 
   created() {
     this.throttledSendWritingIndicator = _.throttle(() => {
-      console.log('throttledSendWritingIndicator')
       if (!this.messageInput.content) {
         return
       }

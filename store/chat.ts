@@ -97,6 +97,17 @@ export const mutations: MutationTree<AnotherModuleState> = {
       writing: false,
     }
   },
+  SET_CHAT_UNREAD_COUNT: (
+    state,
+    payload: { chatId: string; unreadMessagesCount: number }
+  ) => {
+    const chat = state.chats.find((_chat) => _chat._id === payload.chatId)
+    if (!chat) {
+      return
+    }
+
+    chat.unreadMessagesCount = payload.unreadMessagesCount
+  },
   MERGE_UNREAD_MESSAGES: (state) => {
     state.messages.push(...state.unreadMessages)
     state.unreadMessages = []
@@ -141,6 +152,8 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
     commit('MARK_CHAT_AS_OPENED')
     commit('SET_MESSAGES', messasgesResult.messages)
     commit('MARK_MESSAGES_LOADED', true)
+    commit('SET_CHAT_UNREAD_COUNT', { chatId, unreadMessagesCount: 0 })
+    await messembedSdk.readChat(chatId)
   },
   async sendMessage({ commit }, messageContent: string): Promise<void> {
     this.dispatch('initMessembedSdk')
@@ -165,6 +178,7 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
   },
   ensureWebSocketConnection({ state, commit }) {
     this.dispatch('initMessembedSdk')
+    const messembedSdk = this.getters.messembedSdk as MessembedSDK
 
     if (socket) {
       return
@@ -183,6 +197,11 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
 
     socket.on('new_update', (update: Update) => {
       if (update.type === 'new_message') {
+        // when new message comes then mark the whole chat as read
+        // so new message will be marked as read
+        if (update.chatId === state.chatId) {
+          messembedSdk.readChat(update.chatId)
+        }
         commit('PUSH_UPDATE_ABOUT_NEW_MESSAGE', update)
       } else if (update.type === 'new_chat') {
         commit('ADD_NEW_CHAT', update.chat)
