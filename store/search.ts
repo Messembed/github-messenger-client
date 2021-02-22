@@ -1,6 +1,6 @@
 import { GetterTree, ActionTree, MutationTree } from 'vuex'
 import jsCookie from 'js-cookie'
-import { User } from 'messembed-sdk'
+import { MessembedSDK, User } from 'messembed-sdk'
 import { RootState } from '~/store'
 
 export const state = () => ({
@@ -46,7 +46,10 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
   async ensureGithubUserIntegrity(
     _ctx,
     options: { githubUserId?: number; githubUsername?: string }
-  ): Promise<{ _id: string }> {
+  ): Promise<User> {
+    this.dispatch('initMessembedSdk')
+    const messembedSdk = this.getters.messembedSdk as MessembedSDK
+
     const backendAccessToken = jsCookie.get('backendAccessToken')
 
     const messembedUserId = await this.$axios.post<{ _id: string }>(
@@ -58,6 +61,8 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
       }
     )
 
-    return messembedUserId.data
+    const user = await messembedSdk.getUser(messembedUserId.data._id)
+
+    return user
   },
 }

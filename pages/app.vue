@@ -6,14 +6,15 @@
         <nuxt-child />
       </div>
     </div>
+    <audio id="notification-audio" src="~assets/notification.mp3" />
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
 import { mapGetters } from 'vuex'
+import { User, PersonalChat } from 'messembed-sdk'
 import Sidebar from '~/components/Sidebar.vue'
-import { PersonalChat } from '~/../messembed-sdk/dist'
 
 export default Vue.extend({
   components: {
@@ -22,6 +23,7 @@ export default Vue.extend({
   computed: {
     ...mapGetters({
       chats: 'chat/chats',
+      overallUnreadMessagesSum: 'chat/overallUnreadMessagesSum',
     }),
   },
   data: () => ({
@@ -46,7 +48,7 @@ export default Vue.extend({
         )
 
         if (!foundChat) {
-          const messembedUser = await this.$store.dispatch(
+          const messembedUser: User = await this.$store.dispatch(
             'search/ensureGithubUserIntegrity',
             {
               githubUsername: this.$route.params.username,
@@ -54,9 +56,14 @@ export default Vue.extend({
           )
 
           await this.$store.dispatch('chat/openDryChat', messembedUser._id)
+          console.log('messembedUser', messembedUser)
+          console.log(
+            'messembedUser.externalMetadata',
+            messembedUser.externalMetadata
+          )
           this.title =
-            (messembedUser.externalMetadata.name ||
-              messembedUser.externalMetadata.username ||
+            (messembedUser.externalMetadata?.name ||
+              messembedUser.externalMetadata?.username ||
               '') + ' - GitHub Messenger'
           return
         }
@@ -70,7 +77,11 @@ export default Vue.extend({
     },
   },
   head() {
-    return { title: this.title }
+    return {
+      title: this.overallUnreadMessagesSum
+        ? '(' + this.overallUnreadMessagesSum + ') ' + this.title
+        : this.title,
+    }
   },
 })
 </script>

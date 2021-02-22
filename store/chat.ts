@@ -37,6 +37,8 @@ export type AnotherModuleState = ReturnType<typeof state>
 
 export const getters: GetterTree<AnotherModuleState, RootState> = {
   chats: (state) => state.chats,
+  overallUnreadMessagesSum: (state) =>
+    _.sumBy(state.chats, (chat) => chat.unreadMessagesCount),
   chatsWithAdditionalInfo: (state) => state.chatsWithAdditionalInfo,
   isDryChat: (state) => state.isDryChat,
   dryChatCompanion: (state) => state.dryChatCompanion,
@@ -58,7 +60,7 @@ export const mutations: MutationTree<AnotherModuleState> = {
     )
   },
   MARK_CHAT_AS_OPENED: (state) => (state.chatOpened = true),
-  SET_CHAT_ID: (state, chatId: string) => (state.chatId = chatId),
+  SET_CHAT_ID: (state, chatId: string | null) => (state.chatId = chatId),
   SET_MESSAGES: (state, messages: Message[]) => (state.messages = messages),
   PUSH_UPDATE_ABOUT_NEW_MESSAGE: (state, update: Update) => {
     const chat = state.chats.find((chat) => chat._id === update.chatId)
@@ -208,7 +210,12 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
         if (update.chatId === state.chatId) {
           messembedSdk.readChat(update.chatId)
         }
+
         commit('PUSH_UPDATE_ABOUT_NEW_MESSAGE', update)
+
+        if (!update.message?.fromMe) {
+          this.dispatch('notifications/playNotificationSound')
+        }
       } else if (update.type === 'new_chat') {
         commit('ADD_NEW_CHAT', update.chat)
       }
@@ -246,6 +253,7 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
     const companion = await messembedSdk.getUser(messembedUserId)
 
     commit('SET_MESSAGES', [])
+    commit('SET_CHAT_ID', null)
     commit('SET_IS_DRY_CHAT', true)
     commit('SET_DRY_CHAT_COMPANION', companion)
     commit('MARK_CHAT_AS_OPENED')
