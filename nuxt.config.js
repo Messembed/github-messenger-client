@@ -8,6 +8,37 @@ export default {
       { hid: 'description', name: 'description', content: '' },
     ],
     link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.png' }],
+    script: [
+      {
+        hid: 'yandex-metrica-script',
+        innerHTML: `
+          (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+          (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+      
+          ym(72817591, "init", {
+              clickmap:true,
+              trackLinks:true,
+              accurateTrackBounce:true,
+              webvisor:true,
+              trackHash:true
+          });
+        `,
+        type: 'text/javascript',
+      },
+    ],
+    noscript: [
+      {
+        hid: 'yandex-metrica-noscript',
+        innerHTML: `
+          <div><img src="https://mc.yandex.ru/watch/72817591" style="position:absolute; left:-9999px;" alt="" /></div>
+        `,
+      },
+    ],
+    __dangerouslyDisableSanitizersByTagID: {
+      'yandex-metrica-script': ['innerHTML'],
+      'yandex-metrica-noscript': ['innerHTML'],
+    },
   },
 
   // Global CSS (https://go.nuxtjs.dev/config-css)
