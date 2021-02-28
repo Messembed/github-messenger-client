@@ -1,22 +1,11 @@
 import { GetterTree, ActionTree, MutationTree } from 'vuex'
-import {
-  Message,
-  MessembedSDK,
-  PersonalChat,
-  Update,
-  User,
-} from 'messembed-sdk'
+import { Message, PersonalChat, User } from 'messembed-sdk'
 import _ from 'lodash'
-import io, { Socket } from 'socket.io-client'
-import jsCookie from 'js-cookie'
 import { RootState } from '~/store'
-
-let socket: typeof Socket | null = null
 
 interface PersonalChatWithAdditionalInfo {
   chatId: string
   writing: boolean
-  clearWritingTimeout?: any
 }
 
 export const state = () => ({
@@ -62,26 +51,26 @@ export const mutations: MutationTree<AnotherModuleState> = {
   MARK_CHAT_AS_OPENED: (state) => (state.chatOpened = true),
   SET_CHAT_ID: (state, chatId: string | null) => (state.chatId = chatId),
   SET_MESSAGES: (state, messages: Message[]) => (state.messages = messages),
-  PUSH_UPDATE_ABOUT_NEW_MESSAGE: (state, update: Update) => {
-    const chat = state.chats.find((chat) => chat._id === update.chatId)
+  PUSH_UPDATE_ABOUT_NEW_MESSAGE: (state, message: Message) => {
+    const chat = state.chats.find((chat) => chat._id === message.chat)
     if (chat) {
       // TODO: fix the sdk
-      chat.lastMessage = update.message!
+      chat.lastMessage = message!
       _.pull(state.chats, chat)
       state.chats.unshift(chat)
 
       // @ts-ignore
-      if (state.chatId === chat._id || !update.message!.fromMe) {
+      if (state.chatId === chat._id || !message!.fromMe) {
         if (state.chatsWithAdditionalInfo[chat._id]) {
           // drop the writing indicator if new message is received
           state.chatsWithAdditionalInfo[chat._id].writing = false
         }
         if (state.chatId === chat._id) {
-          state.unreadMessages.push(update.message!)
+          state.unreadMessages.push(message!)
           chat.unreadMessagesCount = 0
 
           // @ts-ignore
-        } else if (!update.message!.fromMe) {
+        } else if (!message!.fromMe) {
           chat.unreadMessagesCount++
         }
       }
@@ -119,22 +108,14 @@ export const mutations: MutationTree<AnotherModuleState> = {
   SET_IS_DRY_CHAT: (state, isDryChat: boolean) => (state.isDryChat = isDryChat),
   SET_DRY_CHAT_COMPANION: (state, dryChatCompanion: User) =>
     (state.dryChatCompanion = dryChatCompanion),
-  SET_WRITING: (
-    state,
-    params: { chatId: string; writing: boolean; clearWritingTimeout: any }
-  ) => {
+  SET_WRITING: (state, params: { chatId: string; writing: boolean }) => {
     state.chatsWithAdditionalInfo[params.chatId].writing = params.writing
-    state.chatsWithAdditionalInfo[params.chatId].clearWritingTimeout =
-      params.clearWritingTimeout
   },
 }
 
 export const actions: ActionTree<AnotherModuleState, RootState> = {
   async fetchChats({ commit }) {
-    this.dispatch('initMessembedSdk')
-
-    const personalChats = await (this.getters
-      .messembedSdk as MessembedSDK).getPersonalChats()
+    const personalChats = await this.$messembed.sdk?.getPersonalChats()
 
     commit('SET_CHATS', personalChats)
     this.dispatch('chat/ensureWebSocketConnection')
@@ -144,113 +125,72 @@ export const actions: ActionTree<AnotherModuleState, RootState> = {
     commit('SET_IS_DRY_CHAT', false)
     commit('SET_DRY_CHAT_COMPANION', null)
 
-    this.dispatch('initMessembedSdk')
-    const messembedSdk: MessembedSDK = await (this.getters
-      .messembedSdk as MessembedSDK)
-
-    const messasgesResult = await messembedSdk.findMessages({ chatId })
+    const messagesResult = await this.$messembed.sdk?.findMessages({ chatId })
 
     commit('SET_CHAT_ID', chatId)
     commit('MARK_CHAT_AS_OPENED')
-    commit('SET_MESSAGES', messasgesResult.messages)
+    commit('SET_MESSAGES', messagesResult?.messages)
     commit('MARK_MESSAGES_LOADED', true)
     commit('SET_CHAT_UNREAD_COUNT', { chatId, unreadMessagesCount: 0 })
-    await messembedSdk.readChat(chatId)
+    await this.$messembed.sdk?.readChat(chatId)
   },
   async sendMessage({ commit }, messageContent: string): Promise<void> {
-    this.dispatch('initMessembedSdk')
-    const messembedSdk = this.getters.messembedSdk as MessembedSDK
-
     if (this.getters['chat/isDryChat']) {
       const dryChatCompanion = this.getters['chat/dryChatCompanion']
-      const chat = await messembedSdk.createChat(dryChatCompanion._id)
+      const chat = await this.$messembed.sdk?.createChat(dryChatCompanion._id)
 
       commit('ADD_NEW_CHAT', chat)
-      commit('SET_CHAT_ID', chat._id)
+      commit('SET_CHAT_ID', chat?._id)
       commit('SET_IS_DRY_CHAT', false)
       commit('SET_DRY_CHAT_COMPANION', null)
     }
 
     const chatId = this.getters['chat/chatId'] as string
 
-    socket!.emit('send_message', {
+    await this.$messembed.sdk?.sendMessageOverWS({
       content: messageContent,
       chatId,
     })
   },
   ensureWebSocketConnection({ state, commit }) {
-    this.dispatch('initMessembedSdk')
-    const messembedSdk = this.getters.messembedSdk as MessembedSDK
-
-    if (socket) {
-      return
-    }
-
-    const messembedAccessToken = jsCookie.get('messembedAccessToken')
-    const messembedUrl = new URL(process.env.MESSEMBED_URL!)
-
-    socket = io(messembedUrl.origin, {
-      path:
-        messembedUrl.pathname === '/'
-          ? '/socket.io'
-          : messembedUrl.pathname + '/socket.io',
-      query: {
-        token: messembedAccessToken!,
-      },
-    })
-
-    socket.on('connect', () => {
-      console.log('Socket connected', socket)
-    })
-
-    socket.on('new_update', (update: Update) => {
-      if (update.type === 'new_message') {
+    this.$messembed.sdk
+      ?.onNewMessage((message) => {
         // when new message comes then mark the whole chat as read
         // so new message will be marked as read
-        if (update.chatId === state.chatId) {
-          messembedSdk.readChat(update.chatId)
+        if (message.chat === state.chatId) {
+          // do not await
+          this.$messembed.sdk?.readChat(message.chat)
         }
 
-        commit('PUSH_UPDATE_ABOUT_NEW_MESSAGE', update)
+        commit('PUSH_UPDATE_ABOUT_NEW_MESSAGE', message)
 
-        if (!update.message?.fromMe) {
+        if (!message?.fromMe) {
           this.dispatch('notifications/playNotificationSound')
         }
-      } else if (update.type === 'new_chat') {
-        commit('ADD_NEW_CHAT', update.chat)
-      }
-    })
-
-    socket.on('writing', (writing: { chatId: string }) => {
-      if (state.chatsWithAdditionalInfo[writing.chatId].clearWritingTimeout) {
-        clearTimeout(
-          state.chatsWithAdditionalInfo[writing.chatId].clearWritingTimeout
-        )
-      }
-
-      const clearWritingTimeout = setTimeout(() => {
-        commit('SET_WRITING', { chatId: writing.chatId, writing: false })
-      }, 1500)
-
-      commit('SET_WRITING', {
-        chatId: writing.chatId,
-        writing: true,
-        clearWritingTimeout,
       })
-    })
+      ?.onNewChat((chat) => {
+        commit('ADD_NEW_CHAT', chat)
+      })
+      ?.onWriting((chatId) => {
+        commit('SET_WRITING', {
+          chatId,
+          writing: true,
+        })
+      })
+      ?.onWritingEnd((chatId) => {
+        commit('SET_WRITING', { chatId, writing: false })
+      })
   },
   sendWritingIndicator({ state }) {
-    socket?.emit('send_writing', { chatId: state.chatId })
+    this.$messembed.sdk?.sendWritingIndicator(state.chatId!)
   },
   mergeUnreadMessages({ commit }) {
     commit('MERGE_UNREAD_MESSAGES')
   },
   async openDryChat({ commit }, messembedUserId: string) {
     commit('MARK_MESSAGES_LOADED', false)
-    this.dispatch('initMessembedSdk')
-    const messembedSdk = this.getters.messembedSdk as MessembedSDK
 
-    const companion = await messembedSdk.getUser(messembedUserId)
+    const companion = await this.$messembed.sdk?.getUser(messembedUserId)
 
     commit('SET_MESSAGES', [])
     commit('SET_CHAT_ID', null)

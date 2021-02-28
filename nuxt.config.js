@@ -67,6 +67,8 @@ export default {
     ...(process.env.NODE_ENV === 'development' ? ['@nuxtjs/proxy'] : []),
   ],
 
+  plugins: ['~/plugins/messembed.client.ts'],
+
   // Axios module configuration (https://go.nuxtjs.dev/config-axios)
   axios: {},
 
